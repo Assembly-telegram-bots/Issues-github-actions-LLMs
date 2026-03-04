@@ -1,14 +1,14 @@
-name: AI Issue Generator
+name: Gemini Auto-Issue Generator
 
 on:
   push:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, labeled]
 
 jobs:
-  build:
+  analyze_code:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,22 +16,27 @@ jobs:
       pull-requests: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
         with:
-          fetch-depth: 2
-      
-      - uses: actions/setup-python@v5
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
-          
-      - run: pip install PyGithub requests
-      
-      - run: python process_event.py
+
+      - name: Install dependencies
+        run: |
+          pip install PyGithub requests
+
+      - name: Run AI Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           REPOSITORY: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           COMMIT_SHA: ${{ github.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_MODELS_TOKEN: ${{ secrets.GH_MODELS_TOKEN }}
           ALLOWED_USER: ${{ secrets.ALLOWED_USER }}
+        run: python process_event.py
